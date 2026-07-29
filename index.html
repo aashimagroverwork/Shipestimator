@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SHIPESTIMATOR — Parcel Cost Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --kraft:#e9e2d0;
+    --kraft-dark:#dcd2b8;
+    --ink:#20201d;
+    --stamp:#b8442e;
+    --teal:#3c6e63;
+    --line:#c9bd9c;
+    --paper:#f4efe2;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--kraft);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px);
+    color:var(--ink);
+    font-family:'Space Mono', monospace;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px 60px;
+  }
+  .sheet{
+    width:100%;
+    max-width:760px;
+  }
+  header.label{
+    border:3px solid var(--ink);
+    padding:20px 24px;
+    background:var(--paper);
+    position:relative;
+    margin-bottom:18px;
+  }
+  header.label::before{
+    content:"";
+    position:absolute;
+    top:10px; right:10px;
+    width:70px; height:70px;
+    border:3px solid var(--stamp);
+    border-radius:50%;
+    transform:rotate(-14deg);
+    opacity:0.55;
+  }
+  header.label::after{
+    content:"HANDLE\A WITH\A CARE";
+    white-space:pre;
+    position:absolute;
+    top:26px; right:20px;
+    width:58px;
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    font-size:10px;
+    line-height:1.15;
+    color:var(--stamp);
+    text-align:center;
+    transform:rotate(-14deg);
+    letter-spacing:0.5px;
+  }
+  .eyebrow{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:600;
+    letter-spacing:3px;
+    font-size:12px;
+    color:var(--teal);
+    text-transform:uppercase;
+  }
+  h1{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    font-size:38px;
+    letter-spacing:1px;
+    margin:4px 0 6px;
+  }
+  .sub{font-size:13px; color:#4a463c; max-width:480px;}
+  .barcode{
+    height:26px;
+    margin-top:14px;
+    background: repeating-linear-gradient(90deg, var(--ink) 0px, var(--ink) 2px, transparent 2px, transparent 5px, var(--ink) 5px, var(--ink) 6px, transparent 6px, transparent 9px);
+    opacity:0.85;
+  }
+  .console{
+    border:3px solid var(--ink);
+    background:#181712;
+    color:#dcd7c4;
+    min-height:420px;
+    max-height:560px;
+    overflow-y:auto;
+    padding:20px;
+    font-size:13.5px;
+    line-height:1.65;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .console .prompt-line{color:#8fbfa8;}
+  .console .error{color:#e08a75;}
+  .console .accent{color:#e0b45c;}
+  .console .rule{color:#6b6656;}
+  .console .final{color:#f2ede0; font-weight:bold;}
+  .input-row{
+    display:flex;
+    border:3px solid var(--ink);
+    border-top:none;
+    background:var(--paper);
+  }
+  .input-row .car{
+    padding:10px 12px;
+    font-weight:700;
+    color:var(--stamp);
+    user-select:none;
+  }
+  .input-row input{
+    flex:1;
+    border:none;
+    background:transparent;
+    font-family:'Space Mono', monospace;
+    font-size:14px;
+    padding:10px 8px 10px 0;
+    outline:none;
+    color:var(--ink);
+  }
+  .input-row button{
+    border:none;
+    border-left:2px solid var(--ink);
+    background:var(--teal);
+    color:var(--paper);
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    letter-spacing:1px;
+    padding:0 22px;
+    cursor:pointer;
+    font-size:14px;
+  }
+  .input-row button:hover{background:#325a51;}
+  .choices{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    padding:12px;
+    border:3px solid var(--ink);
+    border-top:none;
+    background:var(--paper);
+  }
+  .choices button{
+    font-family:'Space Mono', monospace;
+    font-size:13px;
+    border:2px solid var(--ink);
+    background:var(--kraft);
+    padding:8px 14px;
+    cursor:pointer;
+  }
+  .choices button:hover{background:var(--teal); color:var(--paper); border-color:var(--teal);}
+  footer{
+    text-align:center;
+    font-size:11px;
+    color:#6b6656;
+    margin-top:18px;
+    letter-spacing:1px;
+    font-family:'Barlow Condensed',sans-serif;
+  }
+  .restart{
+    display:none;
+    margin-top:14px;
+    text-align:center;
+  }
+  .restart button{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    letter-spacing:1px;
+    border:3px solid var(--ink);
+    background:var(--stamp);
+    color:var(--paper);
+    padding:10px 26px;
+    cursor:pointer;
+    font-size:14px;
+  }
+  .restart button:hover{opacity:0.85;}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="label">
+    <div class="eyebrow">Waybill · Estimate Only</div>
+    <h1>SHIPESTIMATOR</h1>
+    <div class="sub">Parcel cost calculator — domestic &amp; international rates across four courier partners, priced live in your browser.</div>
+    <div class="barcode"></div>
+  </header>
+
+  <div class="console" id="console"></div>
+  <div class="input-row" id="inputRow">
+    <span class="car">&gt;</span>
+    <input id="textInput" type="text" autocomplete="off" placeholder="Type your answer and press Enter" />
+    <button id="sendBtn">ENTER</button>
+  </div>
+  <div class="choices" id="choices" style="display:none;"></div>
+
+  <div class="restart" id="restartWrap">
+    <button id="restartBtn">RUN AGAIN</button>
+  </div>
+
+  <footer>BUILT IN C, PORTED TO JS FOR THE BROWSER · SOURCE ON GITHUB</footer>
+</div>
+
+<script>
+const consoleEl = document.getElementById('console');
+const inputRow = document.getElementById('inputRow');
+const textInput = document.getElementById('textInput');
+const sendBtn = document.getElementById('sendBtn');
+const choicesEl = document.getElementById('choices');
+const restartWrap = document.getElementById('restartWrap');
+const restartBtn = document.getElementById('restartBtn');
+
+function print(text, cls){
+  const span = document.createElement('div');
+  if(cls) span.className = cls;
+  span.textContent = text;
+  consoleEl.appendChild(span);
+  consoleEl.scrollTop = consoleEl.scrollHeight;
+}
+function printRaw(text, cls){
+  // preserves blank lines / multiline blocks
+  text.split('\n').forEach(line => print(line, cls));
+}
+
+// ---- Program state (mirrors the C globals) ----
+let state = {};
+const providerNames = ["FastShip", "QuickPost", "SpeedyCourier", "GlobalExpress"];
+const localRates = [5.0, 4.0, 6.0, 7.0];
+const globalRates = [15.0, 12.0, 18.0, 20.0];
+
+function resetState(){
+  state = {
+    pkg_mass:0, route_km:0, shipping_fee:0,
+    box_length:0, box_width:0, box_height:0,
+    delivery_zone:"", service_tier:"", courier_brand:"",
+    fragile_status:0, promo_applied:0, selected_provider:0,
+    base_amount:0.0, priority_fee:0.0, protection_fee:0.0,
+    savings_amount:0.0, route_modifier:1.0
+  };
+}
+
+function fmt(n, d=2){ return Number(n).toFixed(d); }
+
+// ---- Step machine ----
+let steps = [];
+let stepIndex = 0;
+
+function startProgram(){
+  resetState();
+  consoleEl.innerHTML = "";
+  restartWrap.style.display = "none";
+  print("****************************************", "rule");
+  print("SHIPESTIMATOR: Parcel Cost Calculator");
+  print("****************************************", "rule");
+  print("");
+  print(">> Calculate precise shipping costs with multiple carriers");
+  print(">> Support for domestic and international deliveries");
+  print("");
+  print("--------------------------------------------------", "rule");
+  print(" SHIPMENT INFORMATION COLLECTION", "accent");
+  print("--------------------------------------------------", "rule");
+  buildSteps();
+  stepIndex = 0;
+  runStep();
+}
+
+function buildSteps(){
+  steps = [
+    {
+      prompt: "Enter your package weight in kilograms: ",
+      type: "float",
+      onValid: v => { state.pkg_mass = v; }
+    },
+    { announce: "\nNow enter the dimensions of your package:" },
+    {
+      prompt: " What is the length in cm? ",
+      type: "int",
+      onValid: v => { state.box_length = v; }
+    },
+    {
+      prompt: " What is the width in cm? ",
+      type: "int",
+      onValid: v => { state.box_width = v; }
+    },
+    {
+      prompt: " What is the height in cm? ",
+      type: "int",
+      onValid: v => { state.box_height = v; }
+    },
+    {
+      prompt: "\nHow far do you want to ship it in km? ",
+      type: "float",
+      onValid: v => { state.route_km = v; }
+    },
+    {
+      announce: "\nWhere are you shipping?\n - Type 'domestic' for local delivery\n - Type 'international' for overseas delivery",
+      prompt: " Choose zone: ",
+      type: "choice",
+      choices: ["domestic", "international"],
+      errorMsg: " ERROR: Please enter 'domestic' or 'international' only",
+      onValid: v => { state.delivery_zone = v; }
+    },
+    {
+      announce: "\nHow fast do you want delivery?\n - Type 'normal' for regular delivery\n - Type 'express' for fast delivery",
+      prompt: " Choose service: ",
+      type: "choice",
+      choices: ["normal", "express"],
+      errorMsg: " ERROR: Please enter 'normal' or 'express' only",
+      onValid: v => { state.service_tier = v; }
+    },
+    {
+      prompt: "\nIs your package breakable or fragile? (1=Yes, 0=No): ",
+      type: "choice",
+      choices: ["1", "0"],
+      errorMsg: " ERROR: Please enter 1 or 0 only",
+      onValid: v => { state.fragile_status = parseInt(v, 10); }
+    },
+    {
+      prompt: "\nDo you have any coupon or discount code? (1=Yes, 0=No): ",
+      type: "choice",
+      choices: ["1", "0"],
+      errorMsg: " ERROR: Please enter 1 or 0 only",
+      onValid: v => { state.promo_applied = parseInt(v, 10); }
+    },
+    { run: selectDeliveryPartnerStep }
+  ];
+}
+
+function runStep(){
+  if(stepIndex >= steps.length){
+    finishAndCompute();
+    return;
+  }
+  const step = steps[stepIndex];
+
+  if(step.run){
+    step.run();
+    return;
+  }
+  if(step.announce) print(step.announce);
+  showInputFor(step);
+}
+
+function showInputFor(step){
+  choicesEl.style.display = "none";
+  inputRow.style.display = "flex";
+  print(step.prompt.replace(/^\n/, "\n") , "prompt-line");
+  // If it's a small fixed choice set, also render quick buttons
+  if(step.type === "choice" && step.choices.length <= 2){
+    choicesEl.style.display = "flex";
+    choicesEl.innerHTML = "";
+    step.choices.forEach(c => {
+      const b = document.createElement('button');
+      b.textContent = c;
+      b.onclick = () => submitValue(c, step);
+      choicesEl.appendChild(b);
+    });
+  }
+  textInput.value = "";
+  textInput.focus();
+}
+
+function submitValue(raw, step){
+  const v = raw.trim();
+  if(v.length === 0) return;
+  print("> " + v);
+
+  if(step.type === "float"){
+    const num = parseFloat(v);
+    if(isNaN(num)){ print(" ERROR: please enter a number", "error"); return; }
+    step.onValid(num);
+  } else if(step.type === "int"){
+    const num = parseInt(v, 10);
+    if(isNaN(num)){ print(" ERROR: please enter a whole number", "error"); return; }
+    step.onValid(num);
+  } else if(step.type === "choice"){
+    if(!step.choices.includes(v)){
+      print(step.errorMsg, "error");
+      showInputFor(step);
+      return;
+    }
+    step.onValid(v);
+  }
+  stepIndex++;
+  runStep();
+}
+
+sendBtn.onclick = () => {
+  const step = steps[stepIndex];
+  if(!step || step.run) return;
+  submitValue(textInput.value, step);
+};
+textInput.addEventListener('keydown', e => {
+  if(e.key === "Enter") sendBtn.click();
+});
+
+// ---- Delivery partner selection (custom UI step, mirrors select_delivery_partner) ----
+function selectDeliveryPartnerStep(){
+  inputRow.style.display = "none";
+  print("\n--------------------------------------------------", "rule");
+  print(" DELIVERY PARTNER SELECTION", "accent");
+  print("--------------------------------------------------", "rule");
+  print("\nHere are the shipping companies you can choose from:\n");
+  providerNames.forEach((name, i) => {
+    print(`${i+1}. ${name} company`);
+    print(`   For domestic its Rs${localRates[i].toFixed(0)} per kg and international is Rs${globalRates[i].toFixed(0)} per kg\n`);
+  });
+  choicesEl.style.display = "flex";
+  choicesEl.innerHTML = "";
+  providerNames.forEach((name, i) => {
+    const b = document.createElement('button');
+    b.textContent = `${i+1}. ${name}`;
+    b.onclick = () => {
+      state.selected_provider = i;
+      state.courier_brand = providerNames[i];
+      print(`> ${i+1}`);
+      choicesEl.style.display = "none";
+      stepIndex++;
+      runStep();
+    };
+    choicesEl.appendChild(b);
+  });
+}
+
+// ---- Calculation (mirrors compute_shipping_costs / apply_zone_adjustments / calculate_dimensional_factor) ----
+function calculateDimensionalFactor(){
+  const volume = state.box_length * state.box_width * state.box_height;
+  const dimWeight = volume / 5000.0;
+  if(dimWeight > state.pkg_mass) return dimWeight / state.pkg_mass;
+  return 1.0;
+}
+
+function applyZoneAdjustments(){
+  if(state.route_km > 1000){
+    state.route_modifier = 1.5;
+    print("Extra charge because of long distance: 1.5 times more");
+  } else if(state.route_km > 500){
+    state.route_modifier = 1.3;
+    print("Medium range multiplier: 1.3x");
+  } else if(state.route_km > 100){
+    state.route_modifier = 1.1;
+    print("Regional delivery multiplier: 1.1x");
+  } else {
+    state.route_modifier = 1.0;
+    print("Local delivery: No distance premium");
+  }
+}
+
+function computeShippingCosts(){
+  print("\n--------------------------------------------------", "rule");
+  print(" SHIPPING COST COMPUTATION", "accent");
+  print("--------------------------------------------------", "rule");
+
+  if(state.delivery_zone === "domestic"){
+    state.base_amount = state.pkg_mass * localRates[state.selected_provider];
+    print(`\nBasic shipping cost: ${fmt(state.pkg_mass)} kg x Rs${localRates[state.selected_provider].toFixed(0)} = Rs${fmt(state.base_amount)}`);
+  } else {
+    state.base_amount = state.pkg_mass * globalRates[state.selected_provider];
+    print(`\nBasic shipping cost: ${fmt(state.pkg_mass)} kg x Rs${globalRates[state.selected_provider].toFixed(0)} = Rs${fmt(state.base_amount)}`);
+  }
+
+  if(state.service_tier === "express"){
+    state.priority_fee = state.base_amount * 0.5;
+    print(`Extra charge for express delivery: Rs${fmt(state.priority_fee)}`);
+  }
+
+  applyZoneAdjustments();
+
+  const dimFactor = calculateDimensionalFactor();
+  if(dimFactor > 1.0){
+    state.base_amount *= dimFactor;
+    print(`Dimensional weight adjustment: ${fmt(dimFactor)}x`);
+  }
+
+  if(state.fragile_status === 1){
+    state.protection_fee = state.base_amount * 0.2;
+    print(`Extra charge for fragile handling: Rs${fmt(state.protection_fee)}`);
+  }
+
+  if(state.promo_applied === 1){
+    state.savings_amount = state.base_amount * 0.1;
+    print(`Money saved from your discount: Rs${fmt(state.savings_amount)}`);
+  }
+
+  state.shipping_fee = (state.base_amount + state.priority_fee + state.protection_fee) * state.route_modifier - state.savings_amount;
+  if(state.shipping_fee < 0) state.shipping_fee = 0;
+}
+
+function generateCostSummary(){
+  print("\n==========================================", "rule");
+  print(" HERE IS YOUR FINAL BILL", "accent");
+  print("==========================================", "rule");
+
+  print("\nYour Package Details:");
+  print(`Weight of your package: ${fmt(state.pkg_mass)}kg`);
+  print(`Size of your package: ${state.box_length} by ${state.box_width} by ${state.box_height} cm`);
+  print(`How far you are shipping: ${fmt(state.route_km,1)}km`);
+  print(`Where you are shipping: ${state.delivery_zone}`);
+  print(`What speed you chose: ${state.service_tier}`);
+  print(`Which company you picked: ${state.courier_brand}`);
+
+  print("\nExtra Services You Selected:");
+  print(state.fragile_status === 1 ? "Fragile handling: YES you selected this" : "Fragile handling: NO you did not select this");
+  print(state.promo_applied === 1 ? "Discount applied: YES you have a discount" : "Discount applied: NO you do not have discount");
+
+  print("\nHow We Calculated Your Bill:");
+  print(`Basic shipping cost: Rs${fmt(state.base_amount)}`);
+  if(state.service_tier === "express") print(`Extra charge for express delivery: Rs${fmt(state.priority_fee)}`);
+  if(state.fragile_status === 1) print(`Extra charge for fragile handling: Rs${fmt(state.protection_fee)}`);
+  if(state.route_modifier > 1.0) print(`Extra charge because of long distance: ${fmt(state.route_modifier,1)} times more`);
+  if(state.promo_applied === 1) print(`Money saved from your discount: Rs${fmt(state.savings_amount)}`);
+
+  print("--------------------------------", "rule");
+  print(`FINAL AMOUNT YOU NEED TO PAY: Rs${fmt(state.shipping_fee)}`, "final");
+  print("============================", "rule");
+
+  if(state.shipping_fee < 50) print("\nThis is cheap shipping for you");
+  else if(state.shipping_fee < 150) print("\nThis is regular priced shipping");
+  else print("\nThis is expensive shipping");
+
+  print("\nThanks for using shipestimator that I made!");
+  print("\n==========================================", "rule");
+  print(" Session completed successfully! ", "accent");
+  print("==========================================", "rule");
+}
+
+function finishAndCompute(){
+  computeShippingCosts();
+  generateCostSummary();
+  inputRow.style.display = "none";
+  choicesEl.style.display = "none";
+  restartWrap.style.display = "block";
+}
+
+restartBtn.onclick = startProgram;
+
+// Kick things off
+startProgram();
+</script>
+</body>
+</html>
