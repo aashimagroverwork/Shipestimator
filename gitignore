@@ -1,0 +1,13 @@
+# Compiled binaries
+shipestimator
+shipestimator.exe
+*.o
+*.out
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
